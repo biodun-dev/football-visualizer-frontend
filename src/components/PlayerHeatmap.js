@@ -1,42 +1,78 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
-import { Scatter } from 'react-chartjs-2';
-import 'chart.js/auto';
+import Heatmap from 'heatmap.js';
+import pitchImage from './pitch.jpg'; // Import the pitch background image
 
 const PlayerHeatmap = () => {
     const [playerData, setPlayerData] = useState([]);
+    const heatmapContainer = useRef(null);
 
     useEffect(() => {
         axios.get('http://localhost:3001/api/yolo-detections')
-            .then((response) => {
-                console.log('Fetched Player Data:', response.data); // Log the fetched data
-                setPlayerData(response.data); // Save the fetched data to state
-            })
-            .catch((error) => console.error('Error fetching YOLO detections:', error));
+            .then((response) => setPlayerData(response.data))
+            .catch((error) => console.error('Error fetching player data:', error));
     }, []);
 
-    const scatterData = {
-        datasets: [
-            {
-                label: 'Player Positions',
-                data: playerData.map(player => ({
-                    x: parseFloat(player['Pitch X']),
-                    y: parseFloat(player['Pitch Y']),
-                })),
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-            }
-        ]
-    };
+    useEffect(() => {
+        if (playerData.length > 0 && heatmapContainer.current) {
+            const heatmapInstance = Heatmap.create({
+                container: heatmapContainer.current,
+                radius: 30,
+                maxOpacity: 0.7,
+                minOpacity: 0.2,
+                gradient: {
+                    0.2: 'lightblue',
+                    0.4: 'blue',
+                    0.6: 'green',
+                    0.8: 'yellow',
+                    1.0: 'red',
+                },
+            });
+
+            const containerWidth = heatmapContainer.current.offsetWidth;
+            const containerHeight = heatmapContainer.current.offsetHeight;
+            const pitchWidth = 105;
+            const pitchHeight = 68;
+
+            const normalizedData = playerData
+                .slice(0, 10000)
+                .map(player => {
+                    const randomOffset = () => Math.random() * 5 - 2.5;
+                    const x = Math.min(
+                        containerWidth,
+                        (parseFloat(player['Pitch X']) + randomOffset()) / pitchWidth * containerWidth
+                    );
+                    const y = Math.min(
+                        containerHeight,
+                        (parseFloat(player['Pitch Y']) + randomOffset()) / pitchHeight * containerHeight
+                    );
+                    return { x, y, value: 1 };
+                })
+                .filter(point => !isNaN(point.x) && !isNaN(point.y));
+
+            heatmapInstance.setData({
+                max: 10,
+                data: normalizedData,
+            });
+        }
+    }, [playerData]);
 
     return (
-        <div>
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <h2>Player Heatmap</h2>
-            <Scatter data={scatterData} options={{
-                scales: {
-                    x: { title: { display: true, text: 'Pitch X' } },
-                    y: { title: { display: true, text: 'Pitch Y' } }
-                }
-            }} />
+            <div
+                ref={heatmapContainer}
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '600px',
+                    backgroundImage: `url(${pitchImage})`,
+                    backgroundSize: 'cover',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    border: '1px solid #ccc',
+                }}
+            ></div>
         </div>
     );
 };
