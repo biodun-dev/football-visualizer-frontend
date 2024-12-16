@@ -17,7 +17,7 @@ const PlayerHeatmap = () => {
         if (playerData.length > 0 && heatmapContainer.current) {
             const heatmapInstance = Heatmap.create({
                 container: heatmapContainer.current,
-                radius: 30,
+                radius: 20, // Adjust radius for better visualization
                 maxOpacity: 0.7,
                 minOpacity: 0.2,
                 gradient: {
@@ -30,25 +30,27 @@ const PlayerHeatmap = () => {
             });
 
             const containerWidth = heatmapContainer.current.offsetWidth;
-            const containerHeight = heatmapContainer.current.offsetHeight;
-            const pitchWidth = 105;
-            const pitchHeight = 68;
+            const containerHeight = containerWidth * (68 / 105); // Maintain pitch 105:68 aspect ratio
+
+            heatmapContainer.current.style.height = `${containerHeight}px`;
+
+            const pitchWidth = 105; // Real pitch width
+            const pitchHeight = 68; // Real pitch height
 
             const normalizedData = playerData
-                .slice(0, 10000)
+                .slice(0, 10000) // Limit to 10,000 points
                 .map(player => {
-                    const randomOffset = () => Math.random() * 5 - 2.5;
                     const x = Math.min(
                         containerWidth,
-                        (parseFloat(player['Pitch X']) + randomOffset()) / pitchWidth * containerWidth
+                        (parseFloat(player['Pitch X']) / pitchWidth) * containerWidth
                     );
                     const y = Math.min(
                         containerHeight,
-                        (parseFloat(player['Pitch Y']) + randomOffset()) / pitchHeight * containerHeight
+                        (parseFloat(player['Pitch Y']) / pitchHeight) * containerHeight
                     );
                     return { x, y, value: 1 };
                 })
-                .filter(point => !isNaN(point.x) && !isNaN(point.y));
+                .filter(point => !isNaN(point.x) && !isNaN(point.y)); // Remove invalid points
 
             heatmapInstance.setData({
                 max: 10,
@@ -65,7 +67,6 @@ const PlayerHeatmap = () => {
                 style={{
                     position: 'relative',
                     width: '100%',
-                    height: '600px',
                     backgroundImage: `url(${pitchImage})`,
                     backgroundSize: 'cover',
                     backgroundRepeat: 'no-repeat',
