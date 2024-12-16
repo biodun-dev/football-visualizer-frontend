@@ -38,7 +38,7 @@ const PlayerHeatmap = () => {
             const pitchHeight = 68; // Real pitch height
 
             const normalizedData = playerData
-                .slice(0, 10000) // Limit to 10,000 points
+                .slice(0, 25000) 
                 .map(player => {
                     const x = Math.min(
                         containerWidth,
